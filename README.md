@@ -1,2 +1,3 @@
-# mqtt-led-display
+# MQTT LED Display
+
 MQTT LED Display (Micropython/ESP32)
