@@ -8,7 +8,7 @@ from lib.mqttas import MQTTClient, config
 from lib.ledmatrix import LedMatrix
 from lib.hal import HAL
 from pixelfont import PixelFont
-from utils import set_clock
+from utils import set_clock, led_log
 from secrets import MQTT_HOST, MQTT_PORT, MQTT_SSL, MQTT_CLIENT_ID, MQTT_USERNAME, MQTT_PASSWORD, WIFI_KEY, WIFI_SSID
 
 gc.collect()
@@ -116,14 +116,3 @@ try:
 finally:  # Prevent LmacRxBlk:1 errors.
     client.close()
     asyncio.new_event_loop()
-
-"""
-while True:
-    (year, month, day, hour, minute, second, weekday, _) = time.localtime()[:8]
-    now_fmt = '{:02d}:{:02d}'.format(hour, minute)
-    display.render_text(PixelFont, now_fmt, 0, 0, 10,0,5)
-    display.render()
-    time.sleep(2)
-    display.hscroll(-1)
-    time.sleep(1)
-"""
