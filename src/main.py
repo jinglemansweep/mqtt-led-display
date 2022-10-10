@@ -16,9 +16,8 @@ gc.collect()
 print('MQTT LED DISPLAY')
 
 GPIO_PIN = 16
-DISPLAY_PIXEL_COUNT = 256
 DISPLAY_ROWS = 8
-DISPLAY_COLS = 32
+DISPLAY_COLUMNS = 32
 DISPLAY_FPS = 10
 DISPLAY_DEBUG = False
 DISPLAY_INTENSITY = 2
@@ -27,19 +26,40 @@ MQTT_TOPIC_PREFIX = 'mqttled/test'
 
 outages = 0
 
-driver = HAL(gpio_pin=GPIO_PIN, pixel_count=DISPLAY_PIXEL_COUNT)
+driver = HAL(gpio_pin=GPIO_PIN, pixel_count=(DISPLAY_ROWS * DISPLAY_COLUMNS))
 
-display = LedMatrix(driver, dict(
-    debug=DISPLAY_DEBUG,
-    columns=DISPLAY_COLS,
-    stride=DISPLAY_ROWS,
-    fps=DISPLAY_FPS
-))
+display = LedMatrix(
+    driver,
+    rows=DISPLAY_ROWS,
+    columns=DISPLAY_COLUMNS,
+    fps=DISPLAY_FPS,
+    debug=DISPLAY_DEBUG
+)
 
 clock_visible = False
 
 async def echo(msg):
     print(f'ECHO: {msg}')
+
+async def enable_clock(msg):
+    global clock_visible
+    enabled = 'on' in str(msg).lower()
+    print(f'Enable Clock: {enabled}')
+    clock_visible = enabled
+
+async def render_clock():
+    global display, clock_visible
+    if not clock_visible:
+        display.clear()
+        display.render()
+        return    
+    (year, month, day, hour, minute, second, weekday, _) = time.localtime()[:8]
+    alt_second = second % 2 == 0
+    fmt_string = '{:02d}:{:02d}' if alt_second else '{:02d} {:02d}'
+    now_fmt = fmt_string.format(hour, minute)    
+    display.render_text(PixelFont, now_fmt, y=1, color=(3, 0, 3))
+    display.render()
+    await asyncio.sleep_ms(100)
 
 async def render_message(msg):
     global clock_visible
@@ -47,9 +67,14 @@ async def render_message(msg):
     clock_visible = False
     display.hscroll(-1)
     await asyncio.sleep(1)
-    display.render_text(PixelFont, msg, 2, 1, 5, 5, 5)
-    display.render()
-    await asyncio.sleep(5)
+    words = msg.split(' ')
+    for i, word in enumerate(words):
+        display.render_text(PixelFont, word, y=1)
+        display.render()        
+        if i < len(words) - 1:
+            await asyncio.sleep(1)     
+            display.fade()            
+    await asyncio.sleep(1)
     display.hscroll(-1)
     await asyncio.sleep(1)
     clock_visible = True
@@ -70,6 +95,8 @@ def on_message(_topic, _msg, retained):
     topic = _topic.decode()
     msg = _msg.decode()
     print(f'Topic: "{topic}" Message: "{msg}" Retained: {retained}')
+    if topic == f'{MQTT_TOPIC_PREFIX}/clock':
+        asyncio.create_task(enable_clock(msg))    
     if topic == f'{MQTT_TOPIC_PREFIX}/echo':
         asyncio.create_task(echo(msg))
     if topic == f'{MQTT_TOPIC_PREFIX}/text':
@@ -86,12 +113,8 @@ async def main(client):
     n = 0
     clock_visible = True
     while True:
-        if clock_visible:
-            (year, month, day, hour, minute, second, weekday, _) = time.localtime()[:8]
-            now_fmt = '{:02d}:{:02d}:{:02d}'.format(hour, minute, second)
-            display.render_text(PixelFont, now_fmt, 2, 1, 10, 0, 5)
-            display.render()
-        await asyncio.sleep(0.5)
+        asyncio.create_task(render_clock())
+        await asyncio.sleep(0.1)        
         n += 1
 
 config['ssid'] = WIFI_SSID

@@ -6,28 +6,17 @@ if not hasattr(time, "ticks_ms"):
 
 
 class LedMatrix:
-    def __init__(self, driver, config):
+    def __init__(self, driver, rows=8, columns=32, fps=10, rotation=0, debug=False):
         self.driver = driver
-        self.debug = False
-        self.stride = 8
-        self.columns = 32
-        self.rotation = 0
-        self.fps = 10
+        self.rows = rows
+        self.columns = columns
+        self.fps = fps
+        self.rotation = rotation
+        self.debug = debug    
         self.fix_r = 0xFF
         self.fix_g = 0xFF
         self.fix_b = 0xC0
-        if config:
-            if "debug" in config:
-                self.debug = config["debug"]
-            if "stride" in config:
-                self.stride = config["stride"]
-            if "columns" in config:
-                self.columns = config["columns"]
-            if "rotation" in config:
-                self.rotation = (360 + config["rotation"]) % 360
-            if "fps" in config:
-                self.fps = config["fps"]
-        self.num_pixels = self.stride * self.columns
+        self.num_pixels = self.rows * self.columns
         # For avoiding multiplications and divisions
         self.num_modified_pixels = (
             self.num_pixels
@@ -49,11 +38,11 @@ class LedMatrix:
             pass
         elif self.rotation < 180:
             tmp = x
-            x = self.stride - 1 - y
+            x = self.rows - 1 - y
             y = tmp
         elif self.rotation < 270:
             x = self.columns - 1 - x
-            y = self.stride - 1 - y
+            y = self.rows - 1 - y
         else:
             tmp = x
             x = y
@@ -61,10 +50,10 @@ class LedMatrix:
         # The LEDs are laid out in a long string going from north to south,
         # one step to the east, and then south to north, before the cycle
         # starts over.
-        stride = self.stride
-        phys_addr = x * stride
+        rows = self.rows
+        phys_addr = x * rows
         if x & 1:
-            phys_addr += stride - 1 - y
+            phys_addr += rows - 1 - y
         else:
             phys_addr += y
         return phys_addr
@@ -101,9 +90,9 @@ class LedMatrix:
         """
         if x > self.columns:
             # TODO: proper fix for 16x16 displays
-            x -= self.stride
+            x -= self.rows
             y += 8
-        if x >= self.columns or y >= self.stride:
+        if x >= self.columns or y >= self.rows:
             return
         pixel = self.xy_to_phys(x, y)
         offset = pixel * 3
@@ -127,7 +116,7 @@ class LedMatrix:
         """
         Put a block of data of rows*cols*3 size at (x,y)
         """
-        if x + cols > self.columns or y + rows > self.stride:
+        if x + cols > self.columns or y + rows > self.rows:
             return
         offset = 0
         for row in range(rows):
@@ -137,10 +126,11 @@ class LedMatrix:
                 )
                 offset += 3
 
-    def render_text(self, font, text, x_off, y_off, r=255, g=255, b=255):
+    def render_text(self, font, text, x=0, y=0, color=(2, 2, 2), center=True):
         """
         Render text with the pixel font
         """
+        r, g, b = color
         put_pixel_fn = self.put_pixel
         w = font.width
         h = font.height
@@ -152,10 +142,12 @@ class LedMatrix:
         low_r = in_r >> 1
         low_g = in_g >> 1
         low_b = in_b >> 1
+        if center:
+            x += int((self.columns - len(text) * int(w)) / 2)
         for i in range(len(text)):
             digit = text[i]
-            if digit in ".:-' " or (i and text[i - 1] in ".: "):
-                x_off -= 1
+            # if digit in ".:-' " or (i and text[i - 1] in ".: "):
+            #     x -= 1
             data_offset = alphabet.find(digit)
             if data_offset < 0:
                 data_offset = 0
@@ -165,21 +157,21 @@ class LedMatrix:
             for row in range(h):
                 for col in range(w):
                     if font_data[font_byte] & (1 << font_bit):
-                        put_pixel_fn(x_off + col, y_off + row, in_r, in_g, in_b)
+                        put_pixel_fn(x + col, y + row, in_r, in_g, in_b)
                     else:
-                        put_pixel_fn(x_off + col, y_off + row, 0, 0, 0)
+                        put_pixel_fn(x + col, y + row, 0, 0, 0)
                     font_bit += 1
                     if font_bit == 8:
                         font_byte += 1
                         font_bit = 0
             if digit == "m":
-                put_pixel_fn(x_off + 1, y_off + 1, low_r, low_g, low_b)
+                put_pixel_fn(x + 1, y + 1, low_r, low_g, low_b)
             elif digit == "w":
-                put_pixel_fn(x_off + 1, y_off + 3, low_r, low_g, low_b)
+                put_pixel_fn(x + 1, y + 3, low_r, low_g, low_b)
             elif digit == "n":
-                put_pixel_fn(x_off, y_off + 3, low_r, low_g, low_b)
-                put_pixel_fn(x_off + 2, y_off + 1, low_r, low_g, low_b)
-            x_off += w
+                put_pixel_fn(x, y + 3, low_r, low_g, low_b)
+                put_pixel_fn(x + 2, y + 1, low_r, low_g, low_b)
+            x += w
 
     def render(self):
         """
@@ -237,7 +229,7 @@ class LedMatrix:
         for zero_lane in range(z_start, z_end, distance):
             fb_cur = self.fb[self.fb_index ^ 1]
             fb_next = self.fb[self.fb_index]
-            for y in range(self.stride):
+            for y in range(self.rows):
                 for x in range(z_end + delta, zero_lane + distance + delta, delta):
                     src = self.xy_to_phys(x - distance, y) * 3
                     dst = self.xy_to_phys(x, y)
@@ -247,7 +239,7 @@ class LedMatrix:
                     fb_next[dst] = fb_cur[src]
                     fb_next[dst + 1] = fb_cur[src + 1]
                     fb_next[dst + 2] = fb_cur[src + 2]
-            for y in range(self.stride):
+            for y in range(self.rows):
                 for x in range(zero_lane, zero_lane + distance, -delta):
                     dst = self.xy_to_phys(x, y)
                     if dst >= self.num_modified_pixels:
@@ -261,10 +253,10 @@ class LedMatrix:
         Scroll away pixels, up or down
         """
         if distance > 0:
-            z_start, z_end, delta = 0, self.stride, -1
+            z_start, z_end, delta = 0, self.rows, -1
         else:
-            z_start, z_end, delta = self.stride - 1, -1, 1
-        if self.stride % distance:
+            z_start, z_end, delta = self.rows - 1, -1, 1
+        if self.rows % distance:
             distance -= delta
         for zero_lane in range(z_start, z_end, distance):
             fb_cur = self.fb[self.fb_index ^ 1]
@@ -315,7 +307,7 @@ class LedMatrix:
         Scene transition effect: dissolve active pixels with LFSR
         """
         active_pixels = 0
-        for y in range(self.stride):
+        for y in range(self.rows):
             for x in range(self.columns):
                 colors = self.get_pixel(x, y)
                 if colors[0] or colors[1] or colors[2]:
