@@ -1,6 +1,6 @@
 from neopixel import NeoPixel
 from machine import Pin
-from ntptime import settime
+
 
 class HAL:
     def __init__(self, gpio_pin=16, pixel_count=64):
@@ -31,9 +31,6 @@ class HAL:
     def process_input(self):
         # TODO: implement
         return 0
-
-    def set_rtc(self, t):
-        settime()
 
     def set_auto_time(self, enable=True):
         self.enable_auto_time = enable
