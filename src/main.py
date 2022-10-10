@@ -3,14 +3,17 @@ time.sleep(2)
 
 import gc
 import uasyncio as asyncio
+
 from lib.mqttas import MQTTClient, config
 from lib.ledmatrix import LedMatrix
 from lib.hal import HAL
 from pixelfont import PixelFont
+from utils import set_clock
+from secrets import MQTT_HOST, MQTT_PORT, MQTT_SSL, MQTT_CLIENT_ID, MQTT_USERNAME, MQTT_PASSWORD, WIFI_KEY, WIFI_SSID
 
 gc.collect()
 
-print("START")
+print('MQTT LED DISPLAY')
 
 GPIO_PIN = 16
 DISPLAY_PIXEL_COUNT = 256
@@ -23,9 +26,6 @@ DISPLAY_INTENSITY = 2
 MQTT_TOPIC_PREFIX = 'mqttled/test'
 
 outages = 0
-
-#wifi_connect(WIFI_SSID, WIFI_KEY)
-#set_ntp_clock()
 
 driver = HAL(gpio_pin=GPIO_PIN, pixel_count=DISPLAY_PIXEL_COUNT)
 
@@ -68,6 +68,7 @@ async def main(client):
     except OSError:
         print('Status: Connection Failed')
         return
+    set_clock()
     n = 0
     while True:
         await asyncio.sleep(5)
@@ -75,6 +76,14 @@ async def main(client):
         # await client.publish(TOPIC_PREFIX, '{} repubs: {} outages: {}'.format(n, client.REPUB_COUNT, outages), qos = 1)
         n += 1
 
+config['ssid'] = WIFI_SSID
+config['wifi_pw'] = WIFI_KEY
+config['server'] = MQTT_HOST
+config['port'] = MQTT_PORT
+config['ssl'] = MQTT_SSL
+config['client_id'] = MQTT_CLIENT_ID
+config['user'] = MQTT_USERNAME
+config['password'] = MQTT_PASSWORD
 config['subs_cb'] = on_message
 config['wifi_coro'] = handle_wifi
 config['will'] = (MQTT_TOPIC_PREFIX, 'GOODBYE', False, 0)
