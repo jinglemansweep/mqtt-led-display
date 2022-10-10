@@ -137,7 +137,7 @@ class LedMatrix:
                 )
                 offset += 3
 
-    def render_text(self, font, text, x_off, y_off, intensity=32):
+    def render_text(self, font, text, x_off, y_off, r=255, g=255, b=255):
         """
         Render text with the pixel font
         """
@@ -146,9 +146,9 @@ class LedMatrix:
         h = font.height
         alphabet = font.alphabet
         font_data = font.data
-        in_r = self.fix_r * intensity // 255
-        in_g = self.fix_g * intensity // 255
-        in_b = self.fix_b * intensity // 255
+        in_r = self.fix_r * r // 255
+        in_g = self.fix_g * g // 255
+        in_b = self.fix_b * b // 255
         low_r = in_r >> 1
         low_g = in_g >> 1
         low_b = in_b >> 1

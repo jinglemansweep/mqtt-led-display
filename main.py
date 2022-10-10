@@ -10,7 +10,7 @@ DISPLAY_ROWS = 8
 DISPLAY_COLS = 32
 DISPLAY_FPS = 10
 DISPLAY_DEBUG = True
-DISPLAY_INTENSITY = 16
+DISPLAY_INTENSITY = 2
 
 driver = HAL(gpio_pin=GPIO_PIN, pixel_count=DISPLAY_PIXEL_COUNT)
 display = LedMatrix(driver, dict(
@@ -20,5 +20,5 @@ display = LedMatrix(driver, dict(
     fps=DISPLAY_FPS
 ))
 
-display.render_text(PixelFont, "hello", 0, 0, DISPLAY_INTENSITY)
+display.render_text(PixelFont, "raphtoro", 0, 0, 10,0,5)
 display.render()
