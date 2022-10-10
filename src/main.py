@@ -36,12 +36,23 @@ display = LedMatrix(driver, dict(
     fps=DISPLAY_FPS
 ))
 
-async def test_cb():
-    print('Test Callback')
-    await asyncio.sleep(0.2)
+clock_visible = False
 
 async def echo(msg):
     print(f'ECHO: {msg}')
+
+async def render_message(msg):
+    global clock_visible
+    print(f'RENDER MESSAGE: {msg}')
+    clock_visible = False
+    display.hscroll(-1)
+    await asyncio.sleep(1)
+    display.render_text(PixelFont, msg, 2, 1, 5, 5, 5)
+    display.render()
+    await asyncio.sleep(5)
+    display.hscroll(-1)
+    await asyncio.sleep(1)
+    clock_visible = True
 
 async def handle_wifi(state):
     global outages
@@ -61,8 +72,11 @@ def on_message(_topic, _msg, retained):
     print(f'Topic: "{topic}" Message: "{msg}" Retained: {retained}')
     if topic == f'{MQTT_TOPIC_PREFIX}/echo':
         asyncio.create_task(echo(msg))
+    if topic == f'{MQTT_TOPIC_PREFIX}/text':
+        asyncio.create_task(render_message(msg))        
 
 async def main(client):
+    global clock_visible
     try:
         await client.connect()
     except OSError:
@@ -70,10 +84,14 @@ async def main(client):
         return
     set_clock()
     n = 0
+    clock_visible = True
     while True:
-        await asyncio.sleep(5)
-        # print('publish', n)
-        # await client.publish(TOPIC_PREFIX, '{} repubs: {} outages: {}'.format(n, client.REPUB_COUNT, outages), qos = 1)
+        if clock_visible:
+            (year, month, day, hour, minute, second, weekday, _) = time.localtime()[:8]
+            now_fmt = '{:02d}:{:02d}:{:02d}'.format(hour, minute, second)
+            display.render_text(PixelFont, now_fmt, 2, 1, 10, 0, 5)
+            display.render()
+        await asyncio.sleep(0.5)
         n += 1
 
 config['ssid'] = WIFI_SSID
