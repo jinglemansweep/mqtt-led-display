@@ -45,14 +45,14 @@ async def enable_clock(msg):
     global clock_visible
     enabled = 'on' in str(msg).lower()
     print(f'Enable Clock: {enabled}')
-    clock_visible = enabled
+    if not enabled:
+        display.clear()
+        display.render()
+    clock_visible = enabled    
 
 async def render_clock():
     global display, clock_visible
-    if not clock_visible:
-        display.clear()
-        display.render()
-        return    
+    if not clock_visible: return    
     (year, month, day, hour, minute, second, weekday, _) = time.localtime()[:8]
     alt_second = second % 2 == 0
     fmt_string = '{:02d}:{:02d}' if alt_second else '{:02d} {:02d}'
@@ -72,9 +72,9 @@ async def render_message(msg):
         display.render_text(PixelFont, word, y=1)
         display.render()        
         if i < len(words) - 1:
-            await asyncio.sleep(1)     
+            await asyncio.sleep(2)     
             display.fade()            
-    await asyncio.sleep(1)
+    await asyncio.sleep(2)
     display.hscroll(-1)
     await asyncio.sleep(1)
     clock_visible = True
