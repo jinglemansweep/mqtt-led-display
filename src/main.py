@@ -2,13 +2,14 @@ import utime
 utime.sleep(2)
 
 import gc
+import machine
 import uasyncio as asyncio
 
 from lib.mqttas import MQTTClient, config
 from lib.ledmatrix import LedMatrix
 from lib.hal import HAL
 from pixelfont import PixelFont
-from utils import set_clock, led_log
+from utils import led_log, get_time, ntp_update
 from secrets import WIFI_KEY, WIFI_SSID, MQTT_HOST, MQTT_PORT, MQTT_SSL, MQTT_CLIENT_ID, MQTT_USERNAME, MQTT_PASSWORD, UTC_OFFSET
 
 gc.collect()
@@ -24,8 +25,6 @@ DISPLAY_INTENSITY = 2
 
 MQTT_TOPIC_PREFIX = 'mqttled/test'
 
-outages = 0
-
 driver = HAL(gpio_pin=GPIO_PIN, pixel_count=(DISPLAY_ROWS * DISPLAY_COLUMNS))
 
 display = LedMatrix(
@@ -36,7 +35,11 @@ display = LedMatrix(
     debug=DISPLAY_DEBUG
 )
 
+ntp_success = False
 clock_visible = False
+outages = 0
+
+led_log(display, 'boot')
 
 async def echo(msg):
     print(f'ECHO: {msg}')
@@ -53,7 +56,7 @@ async def enable_clock(msg):
 async def render_clock():
     global display, clock_visible
     if not clock_visible: return    
-    (year, month, day, hour, minute, second, weekday, _) = utime.localtime()[:8]
+    (year, month, day, hour, minute, second, weekday, _) = get_time(utc_offset=UTC_OFFSET)[:8]
     alt_second = second % 2 == 0
     fmt_string = '{:02d}:{:02d}' if alt_second else '{:02d} {:02d}'
     now_fmt = fmt_string.format(hour, minute)    
@@ -82,6 +85,7 @@ async def render_message(msg):
 async def handle_wifi(state):
     global outages
     if state:
+        led_log(display, 'wifi')
         print('Status: Connected')
     else:
         outages += 1
@@ -109,9 +113,9 @@ async def main(client):
     except OSError:
         print('Status: Connection Failed')
         return
-    set_clock(offset=UTC_OFFSET)
     n = 0
     clock_visible = True
+    asyncio.create_task(ntp_update(display))    
     while True:
         asyncio.create_task(render_clock())
         await asyncio.sleep(0.1)        
