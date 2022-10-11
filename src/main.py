@@ -1,5 +1,5 @@
-import time
-time.sleep(2)
+import utime
+utime.sleep(2)
 
 import gc
 import uasyncio as asyncio
@@ -53,7 +53,7 @@ async def enable_clock(msg):
 async def render_clock():
     global display, clock_visible
     if not clock_visible: return    
-    (year, month, day, hour, minute, second, weekday, _) = time.localtime()[:8]
+    (year, month, day, hour, minute, second, weekday, _) = utime.localtime()[:8]
     alt_second = second % 2 == 0
     fmt_string = '{:02d}:{:02d}' if alt_second else '{:02d} {:02d}'
     now_fmt = fmt_string.format(hour, minute)    
