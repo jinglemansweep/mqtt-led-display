@@ -1,5 +1,6 @@
+import ubinascii
 import utime
-from machine import RTC
+from machine import RTC, unique_id
 import ntptime
 import uasyncio as asyncio
 from pixelfont import PixelFont
@@ -16,7 +17,7 @@ async def ntp_update(display):
     finally:
         print(f'NTP: Rescheduling for {repeat_delay}s')
         await asyncio.sleep(repeat_delay)
-        asyncio.create_task(ntp_update())
+        asyncio.create_task(ntp_update(display))
 
 def get_time(utc_offset=0):
     utc = utime.time()
@@ -44,3 +45,6 @@ def led_log(display, msg):
     display.clear()
     display.render_text(PixelFont, msg, y=1)
     display.render()
+
+def get_device_id():
+    return ubinascii.hexlify(unique_id()).decode('utf-8')

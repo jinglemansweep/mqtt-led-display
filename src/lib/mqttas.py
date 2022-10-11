@@ -485,7 +485,7 @@ class MQTT_base:
             sz -= 2
         msg = await self._as_read(sz)
         retained = op & 0x01
-        self._cb(topic, msg, bool(retained))
+        self._cb(topic, msg, bool(retained), self)
         if op & 6 == 2:  # qos 1
             pkt = bytearray(b"\x40\x02\0\0")  # Send PUBACK
             struct.pack_into("!H", pkt, 2, pid)
