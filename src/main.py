@@ -57,12 +57,15 @@ async def render_clock():
     global display, clock_visible
     if not clock_visible: return    
     (year, month, day, hour, minute, second, weekday, _) = get_time(utc_offset=UTC_OFFSET)[:8]
+    tick_ms = utime.ticks_ms()
     alt_second = second % 2 == 0
-    fmt_string = '{:02d}:{:02d}' if alt_second else '{:02d} {:02d}'
+    fmt_string = '{:02d} {:02d}'
     now_fmt = fmt_string.format(hour, minute)    
-    display.render_text(PixelFont, now_fmt, y=1, color=(3, 0, 3))
+    div_y = int((tick_ms % 1000) / 200) # 0-5 (1/5th sec)
+    display.clear()
+    display.render_text(PixelFont, now_fmt, y=1, color=(3, 0, 3))    
+    display.put_pixel(int(display.columns / 2) - 1, 1 + div_y, 1, 1, 1)
     display.render()
-    await asyncio.sleep_ms(100)
 
 async def render_message(msg):
     global clock_visible
