@@ -9,7 +9,7 @@ from lib.ledmatrix import LedMatrix
 from lib.hal import HAL
 from pixelfont import PixelFont
 from utils import set_clock, led_log
-from secrets import MQTT_HOST, MQTT_PORT, MQTT_SSL, MQTT_CLIENT_ID, MQTT_USERNAME, MQTT_PASSWORD, WIFI_KEY, WIFI_SSID
+from secrets import WIFI_KEY, WIFI_SSID, MQTT_HOST, MQTT_PORT, MQTT_SSL, MQTT_CLIENT_ID, MQTT_USERNAME, MQTT_PASSWORD, UTC_OFFSET
 
 gc.collect()
 
@@ -109,7 +109,7 @@ async def main(client):
     except OSError:
         print('Status: Connection Failed')
         return
-    set_clock()
+    set_clock(offset=UTC_OFFSET)
     n = 0
     clock_visible = True
     while True:
