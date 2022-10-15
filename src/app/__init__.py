@@ -52,12 +52,15 @@ def on_mqtt_message(_topic, _msg, retained, client):
         obj = json.loads(msg)
         visible = None
         color = None
+        brightness = None
         if 'state' in obj:
             visible = 'on' in obj.get('state').lower()
         if 'color' in obj:
             rgb = obj.get('color')
             color = (rgb.get('r'), rgb.get('g'), rgb.get('b'))
-        asyncio.create_task(update_clock(display, client, visible, color))    
+        if 'brightness' in obj:
+            brightness = obj.get('brightness')
+        asyncio.create_task(update_clock(display, client, visible, color, brightness))    
     if topic == f'{MQTT_TEXT_PREFIX}/set':
         asyncio.create_task(show_message(display, msg))   
     if topic == f'{MQTT_TEXT_PREFIX}/flash':
