@@ -6,6 +6,13 @@ from app.state import STATE
 MQTT_TEXT_ID = f'{UNIQUE_ID}_text'
 MQTT_TEXT_PREFIX = f'{HASS_DISCOVERY_PREFIX}/text/{MQTT_TEXT_ID}'
 
+async def setup_mqtt(client):
+    await client.subscribe(f'{MQTT_TEXT_PREFIX}/set', 1)
+    await client.subscribe(f'{MQTT_TEXT_PREFIX}/flash', 1)
+
+async def init(display, client):
+    pass
+
 async def flash_message(display, msg):
     print(f'FLASH MESSAGE: {msg}')
     STATE['clock.visible'] = False

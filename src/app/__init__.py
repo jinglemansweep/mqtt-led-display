@@ -8,10 +8,13 @@ import uasyncio as asyncio
 from app.lib.mqttas import MQTTClient, config
 from app.lib.ledmatrix import create_display
 from app.utils.debug import led_log
-from app.utils.mqtt import setup_mqtt, setup_hass
 from app.utils.time import ntp_update
-from app.actions.clock import show_clock, render_clock, MQTT_CLOCK_PREFIX
-from app.actions.text import show_message, flash_message, MQTT_TEXT_PREFIX
+from app.actions.clock import \
+    setup_mqtt as setup_mqtt_clock, init as init_clock, \
+    update_clock, render_clock, MQTT_LIGHT_PREFIX
+from app.actions.text import \
+    setup_mqtt as setup_mqtt_text, init as init_text, \
+        show_message, flash_message, MQTT_TEXT_PREFIX
 from app.constants import DEVICE_ID
 from app.settings import \
     GPIO_PIN, DISPLAY_ROWS, DISPLAY_COLUMNS, \
@@ -38,16 +41,23 @@ STATE["connection.outages"] = 0
 led_log(display, 'boot')
 
 async def on_mqtt_connect(client):
-    await setup_mqtt(client)
-    await setup_hass(client)
+    await setup_mqtt_clock(client)
+    await setup_mqtt_text(client)
 
 def on_mqtt_message(_topic, _msg, retained, client):
     topic = _topic.decode()
     msg = _msg.decode()
     print(f'Topic: "{topic}" Message: "{msg}" Retained: {retained}')
-    if topic == f'{MQTT_CLOCK_PREFIX}/set':
-        visible = 'on' in str(msg).lower()
-        asyncio.create_task(show_clock(display, client, visible))
+    if topic == f'{MQTT_LIGHT_PREFIX}/set':        
+        obj = json.loads(msg)
+        visible = None
+        color = None
+        if 'state' in obj:
+            visible = 'on' in obj.get('state').lower()
+        if 'color' in obj:
+            rgb = obj.get('color')
+            color = (rgb.get('r'), rgb.get('g'), rgb.get('b'))
+        asyncio.create_task(update_clock(display, client, visible, color))    
     if topic == f'{MQTT_TEXT_PREFIX}/set':
         asyncio.create_task(show_message(display, msg))   
     if topic == f'{MQTT_TEXT_PREFIX}/flash':
@@ -69,7 +79,8 @@ async def main(client):
         print('Status: Connection Failed')
         return
     n = 0
-    asyncio.create_task(show_clock(display, client, True))
+    asyncio.create_task(init_clock(display, client))
+    asyncio.create_task(init_text(display, client))
     asyncio.create_task(ntp_update(display))    
     while True:
         asyncio.create_task(render_clock(display))
