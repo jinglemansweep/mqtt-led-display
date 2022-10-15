@@ -1,15 +1,15 @@
-import ubinascii
-import utime
-from machine import RTC, unique_id
-import ntptime
 import uasyncio as asyncio
-from pixelfont import PixelFont
+import ntptime
+import utime
+from app.utils.debug import led_log
+from app.state import STATE
 
 async def ntp_update(display):
     led_log(display, 'ntp')
     repeat_delay = 3600 # 1 hour
     try:
         ntptime.settime()
+        STATE['ntp.set'] = True
         print('NTP: Updated')
     except:
         print('NTP: Failed')
@@ -40,11 +40,3 @@ def get_time(utc_offset=0):
     else: # After last Sunday of October
         pass
     return utime.localtime(local_time + dst_offset)
-
-def led_log(display, msg):
-    display.clear()
-    display.render_text(PixelFont, msg, y=1)
-    display.render()
-
-def get_device_id():
-    return ubinascii.hexlify(unique_id()).decode('utf-8')

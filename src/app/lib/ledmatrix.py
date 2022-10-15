@@ -1,8 +1,35 @@
 import time
+from neopixel import NeoPixel
+from machine import Pin
 
-if not hasattr(time, "ticks_ms"):
-    # Emulate https://docs.pycom.io/firmwareapi/micropython/utime.html
+if not hasattr(time, 'ticks_ms'):
     time.ticks_ms = lambda: int(time.time() * 1000)
+
+class HAL:
+    def __init__(self, gpio_pin=16, pixel_count=64):
+        self.gpio_pin = gpio_pin
+        self.pixel_count = pixel_count
+        self.np = NeoPixel(Pin(self.gpio_pin), self.pixel_count)
+        self.enable_auto_time = False
+
+    def init_display(self, pixel_count=64):
+        self.clear_display()
+
+    def clear_display(self):
+        for i in range(self.pixel_count):
+            self.np[i] = (0, 0, 0)
+            self.np.write()
+
+    def update_display(self, num_modified_pixels):
+        if not num_modified_pixels:
+            return
+        self.np.write()
+
+    def put_pixel(self, addr, r, g, b):
+        self.np[addr % self.pixel_count] = (r, g, b)
+
+    def reset(self):
+        self.clear_display()
 
 
 class LedMatrix:
@@ -330,3 +357,15 @@ class LedMatrix:
                 self.render()
         # There are still pixels to dissolve
         return True
+
+
+def create_display(gpio_pin, rows=32, columns=8, fps=10, debug=False):
+    driver = HAL(gpio_pin, pixel_count=(rows * columns))
+    return LedMatrix(
+        driver,
+        rows,
+        columns,
+        fps,
+        debug
+    )
+
