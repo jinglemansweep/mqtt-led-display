@@ -7,7 +7,6 @@ from app.secrets import \
     MQTT_HOST, MQTT_PORT, MQTT_SSL, MQTT_CLIENT_ID, \
     MQTT_USERNAME, MQTT_PASSWORD
 from app.constants import HASS_DISCOVERY_PREFIX
-from app.state import STATE
 
 class Manager:
     loop_iterations = 0
@@ -49,6 +48,7 @@ class Manager:
     def _on_message(self, _topic, _msg, retained, _):
         topic = _topic.decode()
         msg = _msg.decode()
+        if not msg: return
         print(f'mqtt_message: topic={topic} msg={msg} retained={retained}')
         for scene in self.scenes:
             scene.on_mqtt_message(topic, msg, retained)
@@ -80,7 +80,6 @@ class Manager:
             led_log(self.display, 'wifi')
             print('Status: Connected')
         else:
-            STATE["connection.outages"] += 1
             print('Status: Not Connected')
         await asyncio.sleep(1)
 
