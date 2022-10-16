@@ -1,26 +1,25 @@
-import json
 import uasyncio as asyncio
 from app.lib.mqttas import MQTTClient, config
 from app.utils.debug import led_log
 from app.utils.time import ntp_update
-from app.actions.clock import \
-    setup_mqtt as setup_mqtt_clock, init as init_clock, \
-    update_clock, render_clock, MQTT_LIGHT_PREFIX
-from app.actions.text import \
-    setup_mqtt as setup_mqtt_text, init as init_text, \
-        show_message, flash_message, MQTT_TEXT_PREFIX
 from app.secrets import \
     WIFI_KEY, WIFI_SSID, \
     MQTT_HOST, MQTT_PORT, MQTT_SSL, MQTT_CLIENT_ID, \
     MQTT_USERNAME, MQTT_PASSWORD
+from app.constants import HASS_DISCOVERY_PREFIX
 from app.state import STATE
 
 class Manager:
     loop_iterations = 0
+    scenes = set()
 
-    def __init__(self, display):
+    def __init__(self, name, display, hass_topic_prefix=HASS_DISCOVERY_PREFIX):
+        self.name = name
         self.display = display
         self.client = self._build_client()
+        self.scenes = set()
+        self.state = dict()
+        self.hass_topic_prefix = hass_topic_prefix
 
     def run(self):
         asyncio.run(self.loop())
@@ -32,35 +31,32 @@ class Manager:
             print('Status: Connection Failed')
             return
         self.loop_iterations = 0
-        asyncio.create_task(init_clock(self.display, self.client))
-        asyncio.create_task(init_text(self.display, self.client))
-        asyncio.create_task(ntp_update(self.display))    
+        self.display.clear()
+        for scene in self.scenes:
+            asyncio.create_task(scene.initialize())        
+        asyncio.create_task(ntp_update(self.display))
         while True:
-            asyncio.create_task(render_clock(self.display))
+            self.display.clear()
+            for scene in self.scenes:
+                asyncio.create_task(scene.loop())
             await asyncio.sleep(0.1)        
             self.loop_iterations += 1
+
+    def add_scene(self, scene_cls):
+        scene = scene_cls(self)
+        self.scenes.add(scene)
 
     def _on_message(self, _topic, _msg, retained, _):
         topic = _topic.decode()
         msg = _msg.decode()
-        print(f'Topic: "{topic}" Message: "{msg}" Retained: {retained}')
-        if topic == f'{MQTT_LIGHT_PREFIX}/set':        
-            obj = json.loads(msg)
-            visible = None
-            color = None
-            brightness = None
-            if 'state' in obj:
-                visible = 'on' in obj.get('state').lower()
-            if 'color' in obj:
-                rgb = obj.get('color')
-                color = (rgb.get('r'), rgb.get('g'), rgb.get('b'))
-            if 'brightness' in obj:
-                brightness = obj.get('brightness')
-            asyncio.create_task(update_clock(self.display, self.client, visible, color, brightness))    
-        if topic == f'{MQTT_TEXT_PREFIX}/set':
-            asyncio.create_task(show_message(self.display, msg))   
-        if topic == f'{MQTT_TEXT_PREFIX}/flash':
-            asyncio.create_task(flash_message(self.display, msg))   
+        print(f'mqtt_message: topic={topic} msg={msg} retained={retained}')
+        for scene in self.scenes:
+            scene.on_mqtt_message(topic, msg, retained)
+       
+        #if topic == f'{MQTT_TEXT_PREFIX}/set':
+        #    asyncio.create_task(show_message(self.display, msg))   
+        #if topic == f'{MQTT_TEXT_PREFIX}/flash':
+        #    asyncio.create_task(flash_message(self.display, msg))   
 
     def _build_client(self):
         config['ssid'] = WIFI_SSID
@@ -89,5 +85,4 @@ class Manager:
         await asyncio.sleep(1)
 
     async def _on_connect(self, _):
-        await setup_mqtt_clock(self.client)
-        await setup_mqtt_text(self.client)        
+        pass   
