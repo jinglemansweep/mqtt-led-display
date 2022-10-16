@@ -6,7 +6,7 @@ from app.utils.time import get_time
 from app.state import STATE
 from app.settings import UTC_OFFSET
 
-MQTT_LIGHT_ID = f'{UNIQUE_ID}_rgb'
+MQTT_LIGHT_ID = f'{UNIQUE_ID}_clock_rgb'
 MQTT_LIGHT_PREFIX = f'{HASS_DISCOVERY_PREFIX}/light/{MQTT_LIGHT_ID}'
 
 DEFAULT_VISIBILITY = True
@@ -20,8 +20,8 @@ async def setup_mqtt(client):
     await client.subscribe(f'{MQTT_LIGHT_PREFIX}/set', 1)
     # Publications
     light_config = dict(
-        name=MQTT_LIGHT_ID, unique_id=MQTT_LIGHT_ID, device_class='light',
-        schema='json', color_mode=True, brightness=True, brightness_scale=255,
+        name=MQTT_LIGHT_ID, unique_id=MQTT_LIGHT_ID, device_class='light', schema='json',
+        color_mode=True, supported_color_modes=['rgb'], brightness=True, brightness_scale=255,
         command_topic=f'{MQTT_LIGHT_PREFIX}/set', state_topic=f'{MQTT_LIGHT_PREFIX}/state',
     )
     await client.publish(f'{MQTT_LIGHT_PREFIX}/config', json.dumps(light_config), retain=True, qos=1)

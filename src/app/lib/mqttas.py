@@ -230,7 +230,7 @@ class MQTT_base:
             if e.args[0] not in BUSY_ERRORS:
                 raise
         await asyncio.sleep_ms(_DEFAULT_MS)
-        self.dprint('MQTT: Connecting')
+        self.dprint('Connecting to broker.')
         if self._ssl:
             import ussl
             self._sock = ussl.wrap_socket(self._sock, **self._ssl_params)
@@ -268,7 +268,7 @@ class MQTT_base:
         # Await CONNACK
         # read causes ECONNABORTED if broker is out; triggers a reconnect.
         resp = await self._as_read(4)
-        self.dprint('MQTT: Connected')  # Got CONNACK
+        self.dprint('Connected to broker.')  # Got CONNACK
         if resp[3] != 0 or resp[0] != 0x20 or resp[1] != 0x02:
             raise OSError(-1, 'Bad CONNACK')  # Bad CONNACK e.g. authentication fail.
 
@@ -485,7 +485,7 @@ class MQTT_base:
             sz -= 2
         msg = await self._as_read(sz)
         retained = op & 0x01
-        self._cb(topic, msg, bool(retained), self)
+        self._cb(topic, msg, bool(retained), self) # JINGLEMANSWEEP
         if op & 6 == 2:  # qos 1
             pkt = bytearray(b"\x40\x02\0\0")  # Send PUBACK
             struct.pack_into("!H", pkt, 2, pid)
@@ -556,15 +556,15 @@ class MQTTClient(MQTT_base):
                 await asyncio.sleep(1)
 
         if not s.isconnected():  # Timed out
-            raise OSError('WiFi: Connection Timed Out')
+            raise OSError('Wi-Fi connect timed out')
         if not quick:  # Skip on first connection only if power saving
             # Ensure connection stays up for a few secs.
-            self.dprint('WiFi: Checking Quality')
+            self.dprint('Checking WiFi integrity.')
             for _ in range(5):
                 if not s.isconnected():
-                    raise OSError('Wifi: Connection Unstable')  # in 1st 5 secs
+                    raise OSError('Connection Unstable')  # in 1st 5 secs
                 await asyncio.sleep(1)
-            self.dprint('WiFi: Connection Established')
+            self.dprint('Got reliable connection')
 
     async def connect(self, *, quick=False):  # Quick initial connect option for battery apps
         if not self._has_connected:
