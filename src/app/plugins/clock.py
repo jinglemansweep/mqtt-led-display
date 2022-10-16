@@ -14,6 +14,7 @@ class ClockPlugin(BasePlugin):
     CLOCK_DEFAULT_COLOR = dict(r=255, g=0, b=255)
     CLOCK_DEFAULT_BRIGHTNESS = 3
     CLOCK_BRIGHTNESS_SCALE = 16
+    CLOCK_OFFSET_X = 2
     CLOCK_OFFSET_Y = 1
 
     async def initialize(self):
@@ -64,32 +65,78 @@ class ClockPlugin(BasePlugin):
         brightness = self.state.get("brightness")
         if state == "OFF":
             return
+        self._render_time()
+        self._render_weekday()
+        self._render_second_pulse(8)
+        self._render_second_pulse(18)
+        self.manager.display.render()
+
+    def _render_time(self):
+        brightness = self.state.get("brightness")
+        color = rgb_dict_to_tuple(self.state.get("color"))
         (year, month, day, hour, minute, second, weekday, _) = get_time(
             utc_offset=UTC_OFFSET
         )[:8]
-        tick_ms = utime.ticks_ms()
-        alt_second = second % 2 == 0
-        fmt_string = "{:02d} {:02d}"
-        now_fmt = fmt_string.format(hour, minute)
-        div_y = int((tick_ms % 1000) / 200)  # 0-5 (1/5th sec)
+        fmt_string = "{:02d}"
         (r, g, b) = color
         self.manager.display.render_text(
             PixelFont,
-            now_fmt,
+            fmt_string.format(hour),
+            x=self.CLOCK_OFFSET_X,
             y=self.CLOCK_OFFSET_Y,
+            center=False,
             color=(
                 scale_brightness(r, brightness, self.CLOCK_BRIGHTNESS_SCALE),
                 scale_brightness(g, brightness, self.CLOCK_BRIGHTNESS_SCALE),
                 scale_brightness(b, brightness, self.CLOCK_BRIGHTNESS_SCALE),
             ),
         )
+        self.manager.display.render_text(
+            PixelFont,
+            fmt_string.format(minute),
+            x=self.CLOCK_OFFSET_X + 10,
+            y=self.CLOCK_OFFSET_Y,
+            center=False,
+            color=(
+                scale_brightness(r, brightness, self.CLOCK_BRIGHTNESS_SCALE),
+                scale_brightness(g, brightness, self.CLOCK_BRIGHTNESS_SCALE),
+                scale_brightness(b, brightness, self.CLOCK_BRIGHTNESS_SCALE),
+            ),
+        )
+        self.manager.display.render_text(
+            PixelFont,
+            fmt_string.format(second),
+            x=self.CLOCK_OFFSET_X + 20,
+            y=self.CLOCK_OFFSET_Y,
+            center=False,
+            color=(
+                scale_brightness(r, brightness, self.CLOCK_BRIGHTNESS_SCALE),
+                scale_brightness(g, brightness, self.CLOCK_BRIGHTNESS_SCALE),
+                scale_brightness(b, brightness, self.CLOCK_BRIGHTNESS_SCALE),
+            ),
+        )
+
+    def _render_second_pulse(self, x):
+        brightness = self.state.get("brightness")
+        tick_ms = utime.ticks_ms()
+        div_y = int((tick_ms % 1000) / 200)  # 0-5 (1/5th sec)
+        for i in range(0, 5):
+            self.manager.display.put_pixel(
+                self.CLOCK_OFFSET_X + x, self.CLOCK_OFFSET_Y + i, 0x00, 0x00, 0x00
+            )
         self.manager.display.put_pixel(
-            int(self.manager.display.columns / 2) - 1,
+            self.CLOCK_OFFSET_X + x,
             self.CLOCK_OFFSET_Y + div_y,
             scale_brightness(0xFF, brightness, self.CLOCK_BRIGHTNESS_SCALE),
             scale_brightness(0xFF, brightness, self.CLOCK_BRIGHTNESS_SCALE),
             scale_brightness(0xFF, brightness, self.CLOCK_BRIGHTNESS_SCALE),
         )
+
+    def _render_weekday(self):
+        brightness = self.state.get("brightness")
+        (year, month, day, hour, minute, second, weekday, _) = get_time(
+            utc_offset=UTC_OFFSET
+        )[:8]
         for i in range(0, 7):
             r = 0xFF if i == weekday else 0x66
             g = 0x00 if i == weekday else 0x00
@@ -101,4 +148,3 @@ class ClockPlugin(BasePlugin):
                 scale_brightness(g, brightness, self.CLOCK_BRIGHTNESS_SCALE),
                 scale_brightness(b, brightness, self.CLOCK_BRIGHTNESS_SCALE),
             )
-        self.manager.display.render()
