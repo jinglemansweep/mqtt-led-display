@@ -48,9 +48,7 @@ class ClockScene(BaseScene):
             asyncio.create_task(self.update_clock(visible, color, brightness))
 
     async def update_clock(self, visible=None, color=None, brightness=None):
-        print(
-            f"update_clock: visible={visible} color={color} brightness={brightness}"
-        )
+        print(f"update_clock: visible={visible} color={color} brightness={brightness}")
         if visible is None:
             if not "clock.visible" in self.manager.state:
                 self.manager.state["clock.visible"] = self.CLOCK_DEFAULT_VISIBILITY
