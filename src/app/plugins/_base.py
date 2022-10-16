@@ -7,15 +7,15 @@ class BasePlugin:
         self.state = dict()
 
     async def initialize(self):
-        print("initialize")
+        # print("initialize")
         pass
 
     async def loop(self):
-        print("loop")
+        # print("loop")
         pass
 
     def on_mqtt_message(self, topic, msg, retain=False):
-        print("on_mqtt_message", topic, msg, retain)
+        # print("on_mqtt_message", topic, msg, retain)
         pass
 
     def build_mqtt_topic(self, name, device_class="switch"):

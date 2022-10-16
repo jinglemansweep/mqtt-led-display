@@ -56,8 +56,8 @@ class Manager:
         if not msg:
             return
         print(f"mqtt_message: topic={topic} msg={msg} retained={retained}")
-        for scene in self.scenes:
-            scene.on_mqtt_message(topic, msg, retained)
+        for plugin in self.plugins:
+            plugin.on_mqtt_message(topic, msg, retained)
 
         # if topic == f'{MQTT_TEXT_PREFIX}/set':
         #    asyncio.create_task(show_message(self.display, msg))

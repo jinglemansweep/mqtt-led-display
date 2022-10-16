@@ -67,7 +67,6 @@ class ClockPlugin(BasePlugin):
         (year, month, day, hour, minute, second, weekday, _) = get_time(
             utc_offset=UTC_OFFSET
         )[:8]
-        print("weekday", weekday)
         tick_ms = utime.ticks_ms()
         alt_second = second % 2 == 0
         fmt_string = "{:02d} {:02d}"
@@ -91,4 +90,15 @@ class ClockPlugin(BasePlugin):
             scale_brightness(0xFF, brightness, self.CLOCK_BRIGHTNESS_SCALE),
             scale_brightness(0xFF, brightness, self.CLOCK_BRIGHTNESS_SCALE),
         )
+        for i in range(0, 7):
+            r = 0xFF if i == weekday else 0x66
+            g = 0x66 if i == weekday else 0x00
+            b = 0x66 if i == weekday else 0x00
+            self.manager.display.put_pixel(
+                self.manager.display.columns - 1,
+                i,
+                scale_brightness(r, brightness, self.CLOCK_BRIGHTNESS_SCALE),
+                scale_brightness(g, brightness, self.CLOCK_BRIGHTNESS_SCALE),
+                scale_brightness(b, brightness, self.CLOCK_BRIGHTNESS_SCALE),
+            )
         self.manager.display.render()
