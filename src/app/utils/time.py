@@ -1,14 +1,14 @@
 import uasyncio as asyncio
 import ntptime
 import utime
-from app.utils.debug import led_log
 
 
-async def ntp_update(display):
-    led_log(display, "ntp")
+async def ntp_update():
     repeat_delay = 3600  # 1 hour
+    success = False
     try:
         ntptime.settime()
+        success = True
         print("ntp: updated")
     except:
         print("ntp: error")
@@ -16,7 +16,8 @@ async def ntp_update(display):
     finally:
         print(f"ntp: update in {repeat_delay}s")
         await asyncio.sleep(repeat_delay)
-        asyncio.create_task(ntp_update(display))
+        asyncio.create_task(ntp_update())
+    return success
 
 
 def get_time(utc_offset=0):

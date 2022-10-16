@@ -8,15 +8,10 @@ import uasyncio as asyncio
 
 from app.constants import DEVICE_ID, UNIQUE_ID
 from app.lib.ledmatrix import create_display
-from app.scenes.clock import ClockScene
-from app.settings import (
-    GPIO_PIN,
-    DISPLAY_ROWS,
-    DISPLAY_COLUMNS,
-    DISPLAY_FPS,
-    DISPLAY_DEBUG,
-)
-from app.utils.debug import led_log
+from app.plugins.clock import ClockPlugin
+from app.plugins.status import StatusPlugin
+
+from app.utils.helpers import led_log
 from app.utils.manager import Manager
 
 gc.collect()
@@ -24,14 +19,13 @@ gc.collect()
 print("MQTT LED DISPLAY")
 print(f"Unique ID: {UNIQUE_ID}")
 
-display = create_display(
-    GPIO_PIN, DISPLAY_ROWS, DISPLAY_COLUMNS, DISPLAY_FPS, DISPLAY_DEBUG
-)
+display = create_display()
 
 led_log(display, "boot")
 
 manager = Manager(UNIQUE_ID, display)
-manager.add_scene(ClockScene)
+manager.add_plugin(StatusPlugin)
+manager.add_plugin(ClockPlugin)
 
 try:
     manager.run()

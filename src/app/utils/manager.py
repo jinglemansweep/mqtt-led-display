@@ -1,6 +1,5 @@
 import uasyncio as asyncio
 from app.lib.mqttas import MQTTClient, config
-from app.utils.debug import led_log
 from app.utils.time import ntp_update
 from app.secrets import (
     WIFI_KEY,
@@ -17,14 +16,14 @@ from app.constants import HASS_DISCOVERY_PREFIX
 
 class Manager:
     loop_iterations = 0
-    scenes = set()
+    plugins = set()
 
     def __init__(self, name, display, hass_topic_prefix=HASS_DISCOVERY_PREFIX):
         self.name = name
         self.display = display
         self.client = self._build_client()
-        self.scenes = set()
-        self.state = dict()
+        self.plugins = set()
+        self.state = dict(status_wifi=False, status_mqtt=False)
         self.hass_topic_prefix = hass_topic_prefix
 
     def run(self):
@@ -38,19 +37,18 @@ class Manager:
             return
         self.loop_iterations = 0
         self.display.clear()
-        for scene in self.scenes:
-            asyncio.create_task(scene.initialize())
-        asyncio.create_task(ntp_update(self.display))
+        for plugin in self.plugins:
+            asyncio.create_task(plugin.initialize())
+        asyncio.create_task(ntp_update())
         while True:
-            self.display.clear()
-            for scene in self.scenes:
-                asyncio.create_task(scene.loop())
+            for plugin in self.plugins:
+                asyncio.create_task(plugin.loop())
             await asyncio.sleep(0.1)
             self.loop_iterations += 1
 
-    def add_scene(self, scene_cls):
-        scene = scene_cls(self)
-        self.scenes.add(scene)
+    def add_plugin(self, plugin_cls):
+        plugin = plugin_cls(self)
+        self.plugins.add(plugin)
 
     def _on_message(self, _topic, _msg, retained, _):
         topic = _topic.decode()
@@ -83,13 +81,14 @@ class Manager:
         MQTTClient.DEBUG = True
         return MQTTClient(config)
 
-    async def _handle_connection(self, state):
-        if state:
-            led_log(self.display, "wifi")
+    async def _handle_connection(self, status):
+        if status:
             print("Status: Connected")
         else:
+            self.state["status_mqtt"] = False
             print("Status: Not Connected")
+        self.state["status_wifi"] = status
         await asyncio.sleep(1)
 
     async def _on_connect(self, _):
-        pass
+        self.state["status_mqtt"] = True

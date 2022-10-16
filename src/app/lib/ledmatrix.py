@@ -2,15 +2,29 @@ import time
 from neopixel import NeoPixel
 from machine import Pin
 
-if not hasattr(time, 'ticks_ms'):
+from app.settings import (
+    DISPLAY_GPIO_PIN,
+    DISPLAY_ROWS,
+    DISPLAY_COLUMNS,
+    DISPLAY_FPS,
+    DISPLAY_ROTATION,
+    DISPLAY_BRIGHTNESS,
+    DISPLAY_DEBUG,
+)
+
+if not hasattr(time, "ticks_ms"):
     time.ticks_ms = lambda: int(time.time() * 1000)
 
+
 class HAL:
-    def __init__(self, gpio_pin=16, pixel_count=64):
+    def __init__(self, gpio_pin, pixel_count, brightness):
         self.gpio_pin = gpio_pin
         self.pixel_count = pixel_count
+        self.brightness = brightness
         self.np = NeoPixel(Pin(self.gpio_pin), self.pixel_count)
-        self.enable_auto_time = False
+        print(
+            f"hal: gpio_pin={gpio_pin} pixel_count={pixel_count} brightness={brightness}"
+        )
 
     def init_display(self, pixel_count=64):
         self.clear_display()
@@ -26,23 +40,34 @@ class HAL:
         self.np.write()
 
     def put_pixel(self, addr, r, g, b):
-        self.np[addr % self.pixel_count] = (r, g, b)
+        self.np[addr % self.pixel_count] = (
+            int(r * (self.brightness / 256)),
+            int(g * (self.brightness / 256)),
+            int(b * (self.brightness / 256)),
+        )
 
     def reset(self):
         self.clear_display()
 
 
 class LedMatrix:
-    def __init__(self, driver, rows=8, columns=32, fps=10, rotation=0, debug=False):
-        self.driver = driver
+    def __init__(
+        self,
+        gpio_pin,
+        rows,
+        columns,
+        fps,
+        rotation,
+        brightness,
+        debug,
+    ):
+        self.driver = HAL(gpio_pin, pixel_count=(rows * columns), brightness=brightness)
         self.rows = rows
         self.columns = columns
         self.fps = fps
         self.rotation = rotation
-        self.debug = debug    
-        self.fix_r = 0xFF
-        self.fix_g = 0xFF
-        self.fix_b = 0xC0
+        self.brightness = brightness
+        self.debug = debug
         self.num_pixels = self.rows * self.columns
         # For avoiding multiplications and divisions
         self.num_modified_pixels = (
@@ -56,6 +81,12 @@ class LedMatrix:
         self.fb_index = 0
         # Initialize display
         self.driver.init_display(self.num_pixels)
+
+    def brightness_adjust(self, num):
+        """
+        Returns number (0-255) adjusted by brightness level
+        """
+        return int(num * (self.brightness / 255))
 
     def xy_to_phys(self, x, y):
         """
@@ -123,9 +154,9 @@ class LedMatrix:
             return
         pixel = self.xy_to_phys(x, y)
         offset = pixel * 3
-        self.fb[self.fb_index][offset + 0] = int(r)
-        self.fb[self.fb_index][offset + 1] = int(g)
-        self.fb[self.fb_index][offset + 2] = int(b)
+        self.fb[self.fb_index][offset + 0] = r
+        self.fb[self.fb_index][offset + 1] = g
+        self.fb[self.fb_index][offset + 2] = b
         # Optimization: keep track of last updated pixel
         if pixel >= self.num_modified_pixels:
             self.num_modified_pixels = pixel + 1
@@ -153,19 +184,16 @@ class LedMatrix:
                 )
                 offset += 3
 
-    def render_text(self, font, text, x=0, y=0, color=(2, 2, 2), center=True):
+    def render_text(self, font, text, x=0, y=0, color=(0xFF, 0xFF, 0xFF), center=True):
         """
         Render text with the pixel font
         """
-        r, g, b = color
+        in_r, in_g, in_b = color
         put_pixel_fn = self.put_pixel
         w = font.width
         h = font.height
         alphabet = font.alphabet
         font_data = font.data
-        in_r = self.fix_r * r // 255
-        in_g = self.fix_g * g // 255
-        in_b = self.fix_b * b // 255
         low_r = in_r >> 1
         low_g = in_g >> 1
         low_b = in_b >> 1
@@ -359,13 +387,24 @@ class LedMatrix:
         return True
 
 
-def create_display(gpio_pin, rows=32, columns=8, fps=10, debug=False):
-    driver = HAL(gpio_pin, pixel_count=(rows * columns))
-    return LedMatrix(
-        driver,
-        rows,
-        columns,
-        fps,
-        debug
-    )
+from app.settings import (
+    DISPLAY_GPIO_PIN,
+    DISPLAY_ROWS,
+    DISPLAY_COLUMNS,
+    DISPLAY_FPS,
+    DISPLAY_ROTATION,
+    DISPLAY_BRIGHTNESS,
+    DISPLAY_DEBUG,
+)
 
+
+def create_display(
+    gpio_pin=DISPLAY_GPIO_PIN,
+    rows=DISPLAY_ROWS,
+    columns=DISPLAY_COLUMNS,
+    fps=DISPLAY_FPS,
+    rotation=DISPLAY_ROTATION,
+    brightness=DISPLAY_BRIGHTNESS,
+    debug=DISPLAY_DEBUG,
+):
+    return LedMatrix(gpio_pin, rows, columns, fps, rotation, brightness, debug)

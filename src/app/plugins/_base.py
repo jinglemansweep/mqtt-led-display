@@ -1,10 +1,10 @@
 import json
 
 
-class BaseScene:
+class BasePlugin:
     def __init__(self, manager):
         self.manager = manager
-        self.subscriptions = []
+        self.state = dict()
 
     async def initialize(self):
         print("initialize")
