@@ -92,8 +92,8 @@ class ClockPlugin(BasePlugin):
         )
         for i in range(0, 7):
             r = 0xFF if i == weekday else 0x66
-            g = 0x66 if i == weekday else 0x00
-            b = 0x66 if i == weekday else 0x00
+            g = 0x00 if i == weekday else 0x00
+            b = 0xFF if i == weekday else 0x00
             self.manager.display.put_pixel(
                 self.manager.display.columns - 1,
                 i,
