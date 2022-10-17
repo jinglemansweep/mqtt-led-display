@@ -17,8 +17,8 @@ from app.secrets import (
 class Manager:
     plugins = set()
 
-    def __init__(self, name, display):
-        self.name = name
+    def __init__(self, host_id, display):
+        self.host_id = host_id
         self.display = display
         self.client = self._build_client()
         self.hass = self._build_hass_manager()
@@ -92,4 +92,4 @@ class Manager:
         self.state["status_mqtt"] = True
 
     def _build_hass_manager(self):
-        return HASS(self.name, self.client)
+        return HASS(self.host_id, self.client)

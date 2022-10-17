@@ -21,7 +21,7 @@ class ClockPlugin(BasePlugin):
 
     async def initialize(self):
         self.entities["clock_rgb"] = await self.manager.hass.add_entity(
-            f"{UNIQUE_ID}_clock_rgb",
+            "clock_rgb",
             "light",
             dict(
                 color_mode=True,

@@ -6,6 +6,7 @@ from app.constants import HASS_DISCOVERY_PREFIX
 class Entity:
     def __init__(
         self,
+        host_id,
         name,
         device_class,
         hass_topic_prefix,
@@ -14,7 +15,7 @@ class Entity:
     ):
         if options is None:
             options = dict()
-        self.name = name
+        self.name = f"{host_id}_{name}"
         self.device_class = device_class
         self.client = client
         self.options = options
@@ -59,16 +60,23 @@ class Entity:
 
 
 class HASS:
-    def __init__(self, name, client, topic_prefix=HASS_DISCOVERY_PREFIX):
-        self.name = name
+    def __init__(self, host_id, client, topic_prefix=HASS_DISCOVERY_PREFIX):
+        self.host_id = host_id
         self.client = client
         self.topic_prefix = topic_prefix
         self.entities = dict()
-        print(f"hass: name={name} topic_prefix={topic_prefix}")
+        print(f"hass: host_id={host_id} topic_prefix={topic_prefix}")
         pass
 
     async def add_entity(self, name, device_class, options=None, initial_state=None):
-        entity = Entity(name, device_class, self.topic_prefix, self.client, options)
+        entity = Entity(
+            self.host_id,
+            name,
+            device_class,
+            self.topic_prefix,
+            self.client,
+            options,
+        )
         await entity.configure()
         await entity.update(initial_state)
         self.entities[name] = entity
