@@ -3,7 +3,6 @@ import uasyncio as asyncio
 import utime
 from app.resources.pixelfont import PixelFont
 from app.plugins._base import BasePlugin
-from app.settings import UTC_OFFSET
 from app.utils.helpers import rgb_dict_to_tuple, scale_brightness
 from app.utils.time import get_time
 
@@ -66,14 +65,12 @@ class ClockPlugin(BasePlugin):
         if state == "OFF":
             self.manager.display.clear()
             return
-        now = (year, month, day, hour, minute, second, weekday, _) = get_time(
-            utc_offset=UTC_OFFSET
-        )[:8]
-        min_even = minute % 2 == 0
+        now = (year, month, day, hour, minute, second, weekday, _) = get_time()[:8]
+        hour_even = hour % 2 == 0
         self._render_time(now)
         self._render_weekday(now)
-        self._render_second_pulse(8, invert=min_even)
-        self._render_second_pulse(18, invert=not min_even)
+        self._render_second_pulse(8, invert=hour_even)
+        self._render_second_pulse(18, invert=not hour_even)
 
     def _render_time(self, now):
         (year, month, day, hour, minute, second, weekday, _) = now

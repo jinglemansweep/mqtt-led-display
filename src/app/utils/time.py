@@ -2,6 +2,8 @@ import uasyncio as asyncio
 import ntptime
 import utime
 
+from app.settings import UTC_OFFSET
+
 
 async def ntp_update():
     repeat_delay = 3600  # 1 hour
@@ -20,7 +22,7 @@ async def ntp_update():
     return success
 
 
-def get_time(utc_offset=0):
+def get_time(utc_offset=UTC_OFFSET):
     utc = utime.time()
     # Timezone
     local_time = utc + (utc_offset * 3600)
