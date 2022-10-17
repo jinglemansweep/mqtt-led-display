@@ -36,7 +36,7 @@ class Manager:
             return
         self.display.clear()
         for plugin in self.plugins:
-            asyncio.create_task(plugin.initialize())
+            asyncio.create_task(plugin._initialize())
         asyncio.create_task(ntp_update())
         while True:
             for plugin in self.plugins:

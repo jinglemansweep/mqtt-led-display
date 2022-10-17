@@ -3,37 +3,73 @@ import json
 from app.constants import HASS_DISCOVERY_PREFIX
 
 
+class Entity:
+    def __init__(
+        self,
+        name,
+        device_class,
+        hass_topic_prefix,
+        client,
+        options=None,
+    ):
+        if options is None:
+            options = dict()
+        self.name = name
+        self.device_class = device_class
+        self.client = client
+        self.options = options
+        self.hass_topic_prefix = hass_topic_prefix
+        topic_prefix = self._build_entity_topic_prefix()
+        self.topic_config = f"{topic_prefix}/config"
+        self.topic_command = f"{topic_prefix}/set"
+        self.topic_state = f"{topic_prefix}/state"
+        self.state = dict()
+
+    async def configure(self):
+        auto_config = dict(
+            name=self.name,
+            unique_id=self.name,
+            device_class=self.device_class,
+            schema="json",
+            command_topic=self.topic_command,
+            state_topic=self.topic_state,
+        )
+        config = auto_config.copy()
+        config.update(self.options)
+        print(f"hass.entity.configure: name={self.name} config={config}")
+        await self.client.publish(
+            self.topic_config, json.dumps(config), retain=True, qos=1
+        )
+        await self.client.subscribe(self.topic_command, 1)
+
+    def get_state(self):
+        return self.state
+
+    async def update(self, new_state=None):
+        if new_state is None:
+            new_state = dict()
+        self.state.update(new_state)
+        print(f"hass.entity.update: name={self.name} config={self.state}")
+        await self.client.publish(
+            self.topic_state, json.dumps(self.state), retain=True, qos=1
+        )
+
+    def _build_entity_topic_prefix(self):
+        return f"{self.hass_topic_prefix}/{self.device_class}/{self.name}"
+
+
 class HASS:
     def __init__(self, name, client, topic_prefix=HASS_DISCOVERY_PREFIX):
         self.name = name
         self.client = client
         self.topic_prefix = topic_prefix
+        self.entities = dict()
         print(f"hass: name={name} topic_prefix={topic_prefix}")
         pass
 
-    async def advertise_entity(self, entity_name, device_class="switch", options=None):
-        if options is None:
-            options = {}
-        full_name = f"{self.name}_{entity_name}"
-        topic = self._build_mqtt_topic(entity_name, device_class)
-        command_topic = f"{topic}/set"
-        state_topic = f"{topic}/state"
-        auto_config = dict(
-            name=full_name,
-            unique_id=full_name,
-            device_class=device_class,
-            schema="json",
-            command_topic=command_topic,
-            state_topic=state_topic,
-        )
-        config = auto_config.copy()
-        config.update(options)
-        print(f"HASS Config: {full_name} [{device_class}] > {config}")
-        await self.client.publish(
-            f"{topic}/config", json.dumps(config), retain=True, qos=1
-        )
-        await self.client.subscribe(command_topic, 1)
-        return (state_topic, command_topic)
-
-    def _build_mqtt_topic(self, entity_name, device_class):
-        return f"{self.topic_prefix}/{device_class}/{self.name}_{entity_name}"
+    async def add_entity(self, name, device_class, options=None, initial_state=None):
+        entity = Entity(name, device_class, self.topic_prefix, self.client, options)
+        await entity.configure()
+        await entity.update(initial_state)
+        self.entities[name] = entity
+        return entity
