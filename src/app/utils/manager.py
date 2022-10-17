@@ -43,6 +43,7 @@ class Manager:
         while True:
             for plugin in self.plugins:
                 asyncio.create_task(plugin.loop())
+            self.display.render()
             await asyncio.sleep(0.1)
             self.loop_iterations += 1
 

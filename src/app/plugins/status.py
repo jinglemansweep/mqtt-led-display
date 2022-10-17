@@ -29,4 +29,3 @@ class StatusPlugin(BasePlugin):
         )
         self.manager.display.put_pixel(*self.STATUS_WIFI_POSITION, *color_wifi)
         self.manager.display.put_pixel(*self.STATUS_MQTT_POSITION, *color_mqtt)
-        self.manager.display.render()

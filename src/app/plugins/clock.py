@@ -52,24 +52,19 @@ class ClockPlugin(BasePlugin):
         color = self.state.get("color")
         brightness = self.state.get("brightness")
         print(f"update_clock: state={state} color={color} brightness={brightness}")
-        if state == "OFF":
-            self.manager.display.clear()
-            self.manager.display.render()
         await self.manager.client.publish(
             f"{self.topic_clock_rgb}/state", json.dumps(self.state), retain=True, qos=1
         )
 
     async def render_clock(self):
         state = self.state.get("state")
-        color = rgb_dict_to_tuple(self.state.get("color"))
-        brightness = self.state.get("brightness")
         if state == "OFF":
+            self.manager.display.clear()
             return
         self._render_time()
         self._render_weekday()
         self._render_second_pulse(8)
         self._render_second_pulse(18)
-        self.manager.display.render()
 
     def _render_time(self):
         brightness = self.state.get("brightness")
