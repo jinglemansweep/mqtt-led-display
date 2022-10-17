@@ -15,7 +15,6 @@ from app.constants import HASS_DISCOVERY_PREFIX
 
 
 class Manager:
-    loop_iterations = 0
     plugins = set()
 
     def __init__(self, name, display, hass_topic_prefix=HASS_DISCOVERY_PREFIX):
@@ -35,7 +34,6 @@ class Manager:
         except OSError:
             print("Status: Connection Failed")
             return
-        self.loop_iterations = 0
         self.display.clear()
         for plugin in self.plugins:
             asyncio.create_task(plugin.initialize())
@@ -44,8 +42,7 @@ class Manager:
             for plugin in self.plugins:
                 asyncio.create_task(plugin.loop())
             self.display.render()
-            await asyncio.sleep(0.1)
-            self.loop_iterations += 1
+            await asyncio.sleep(0.05)
 
     def add_plugin(self, plugin_cls):
         plugin = plugin_cls(self)

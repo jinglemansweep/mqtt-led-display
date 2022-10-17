@@ -14,6 +14,13 @@ class StatusPlugin(BasePlugin):
     STATUS_MQTT_POSITION = (0, 7)
 
     async def loop(self):
+        if all(
+            [
+                self.manager.state.get("status_wifi"),
+                self.manager.state.get("status_mqtt"),
+            ]
+        ):
+            return
         await self.render_status()
 
     async def render_status(self):
