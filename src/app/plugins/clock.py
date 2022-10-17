@@ -36,22 +36,22 @@ class ClockPlugin(BasePlugin):
         )
         self.topic_clock_rgb = self.build_mqtt_topic("clock_rgb", "light")
         await self.manager.client.subscribe(f"{self.topic_clock_rgb}/set", 1)
-        await self.update_clock()
+        await self.update_state()
 
     async def loop(self):
         await self.render_clock()
 
     def on_mqtt_message(self, topic, msg, retain=False):
         if topic == f"{self.topic_clock_rgb}/set":
-            obj = json.loads(msg)
-            self.state.update(obj)
-            asyncio.create_task(self.update_clock())
+            try:
+                obj = json.loads(msg)
+                asyncio.create_task(self.update_state(obj))
+            except:
+                print("mqtt: json parse error")
 
-    async def update_clock(self):
-        state = self.state.get("state")
-        color = self.state.get("color")
-        brightness = self.state.get("brightness")
-        print(f"update_clock: state={state} color={color} brightness={brightness}")
+    async def update_state(self, state=None):
+        if state is not None:
+            self.state.update(state)
         await self.manager.client.publish(
             f"{self.topic_clock_rgb}/state", json.dumps(self.state), retain=True, qos=1
         )
