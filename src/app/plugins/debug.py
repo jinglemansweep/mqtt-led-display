@@ -16,4 +16,10 @@ class DebugPlugin(BasePlugin):
     async def render_debug(self):
         x, y = self.DEBUG_POSITION
         step = utime.time() % 3
+        px_off = (0, 0, 0)
+        self.manager.display.render_block(px_off * 3, 1, 3, 0, 0)
         self.manager.display.put_pixel(x + step, y, *self.DEBUG_COLOR)
+
+    """
+    render_block(self, data, rows, cols, x, y)
+    """

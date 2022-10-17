@@ -121,10 +121,10 @@ class ClockPlugin(BasePlugin):
         brightness = self.state["clock_rgb"]["brightness"]
         tick_ms = utime.ticks_ms()
         div_y = int((tick_ms % 1000) / 200)  # 0-4 (1/5th sec)
-        for i in range(0, 5):
-            self.manager.display.put_pixel(
-                self.CLOCK_OFFSET_X + x, self.CLOCK_OFFSET_Y + i, 0x00, 0x00, 0x00
-            )
+        px_off = (0, 0, 0)
+        self.manager.display.render_block(
+            px_off * 5, 5, 1, self.CLOCK_OFFSET_X + x, self.CLOCK_OFFSET_Y
+        )
         self.manager.display.put_pixel(
             self.CLOCK_OFFSET_X + x,
             self.CLOCK_OFFSET_Y + (div_y if not invert else 4 - div_y),
@@ -136,14 +136,16 @@ class ClockPlugin(BasePlugin):
     def _render_weekday(self, now):
         (year, month, day, hour, minute, second, weekday, _) = now
         brightness = self.state["clock_rgb"]["brightness"]
-        for i in range(0, 7):
-            r = 0xFF if i == weekday else 0x66
-            g = 0x00 if i == weekday else 0x00
-            b = 0xFF if i == weekday else 0x00
-            self.manager.display.put_pixel(
-                self.manager.display.columns - 1,
-                i,
-                scale_brightness(r, brightness, self.CLOCK_BRIGHTNESS_SCALE),
-                scale_brightness(g, brightness, self.CLOCK_BRIGHTNESS_SCALE),
-                scale_brightness(b, brightness, self.CLOCK_BRIGHTNESS_SCALE),
-            )
+        px_dark = (0x66, 0, 0)
+        px_weekday = (0xFF, 0, 0xFF)
+        self.manager.display.render_block(
+            px_dark * 7, 7, 1, self.manager.display.columns - 1, 0
+        )
+        r, g, b = px_weekday
+        self.manager.display.put_pixel(
+            self.manager.display.columns - 1,
+            weekday,
+            scale_brightness(r, brightness, self.CLOCK_BRIGHTNESS_SCALE),
+            scale_brightness(g, brightness, self.CLOCK_BRIGHTNESS_SCALE),
+            scale_brightness(b, brightness, self.CLOCK_BRIGHTNESS_SCALE),
+        )
