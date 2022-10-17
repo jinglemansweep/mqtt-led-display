@@ -21,12 +21,14 @@ class ClockPlugin(BasePlugin):
 
     async def initialize(self):
         self.state = dict(
-            state="ON" if self.CLOCK_DEFAULT_VISIBILITY else "OFF",
-            color=self.CLOCK_DEFAULT_COLOR,
-            brightness=self.CLOCK_DEFAULT_BRIGHTNESS,
-            color_mode="rgb",
+            clock_rgb=dict(
+                state="ON" if self.CLOCK_DEFAULT_VISIBILITY else "OFF",
+                color=self.CLOCK_DEFAULT_COLOR,
+                brightness=self.CLOCK_DEFAULT_BRIGHTNESS,
+                color_mode="rgb",
+            )
         )
-        await self.configure_hass_entity(
+        self.topics["clock_rgb"] = await self.manager.hass.advertise_entity(
             "clock_rgb",
             "light",
             dict(
@@ -36,30 +38,31 @@ class ClockPlugin(BasePlugin):
                 brightness_scale=self.CLOCK_BRIGHTNESS_SCALE,
             ),
         )
-        self.topic_clock_rgb = self.build_mqtt_topic("clock_rgb", "light")
-        await self.manager.client.subscribe(f"{self.topic_clock_rgb}/set", 1)
-        await self.update_state()
+        await self.update_state_clock_rgb()
 
     async def loop(self):
         await self.render_clock()
 
     def on_mqtt_message(self, topic, msg, retain=False):
-        if topic == f"{self.topic_clock_rgb}/set":
+        # MESSAGE: CLOCK_RGB
+        _, clock_rgb_command_topic = self.topics["clock_rgb"]
+        if topic == f"{clock_rgb_command_topic}":
             try:
                 obj = json.loads(msg)
-                asyncio.create_task(self.update_state(obj))
+                asyncio.create_task(self.update_state_clock_rgb(obj))
             except:
                 print("mqtt: json parse error")
 
-    async def update_state(self, state=None):
+    async def update_state_clock_rgb(self, state=None):
         if state is not None:
-            self.state.update(state)
+            self.state["clock_rgb"].update(state)
+        state_topic, _ = self.topics["clock_rgb"]
         await self.manager.client.publish(
-            f"{self.topic_clock_rgb}/state", json.dumps(self.state), retain=True, qos=1
+            state_topic, json.dumps(self.state["clock_rgb"]), retain=True, qos=1
         )
 
     async def render_clock(self):
-        state = self.state.get("state")
+        state = self.state["clock_rgb"]["state"]
         if state == "OFF":
             self.manager.display.clear()
             return
@@ -74,8 +77,8 @@ class ClockPlugin(BasePlugin):
 
     def _render_time(self, now):
         (year, month, day, hour, minute, second, weekday, _) = now
-        brightness = self.state.get("brightness")
-        color = rgb_dict_to_tuple(self.state.get("color"))
+        brightness = self.state["clock_rgb"]["brightness"]
+        color = rgb_dict_to_tuple(self.state["clock_rgb"]["color"])
         (r, g, b) = color
         self.manager.display.render_text(
             PixelFont,
@@ -115,7 +118,7 @@ class ClockPlugin(BasePlugin):
         )
 
     def _render_second_pulse(self, x, invert=False):
-        brightness = self.state.get("brightness")
+        brightness = self.state["clock_rgb"]["brightness"]
         tick_ms = utime.ticks_ms()
         div_y = int((tick_ms % 1000) / 200)  # 0-4 (1/5th sec)
         for i in range(0, 5):
@@ -132,7 +135,7 @@ class ClockPlugin(BasePlugin):
 
     def _render_weekday(self, now):
         (year, month, day, hour, minute, second, weekday, _) = now
-        brightness = self.state.get("brightness")
+        brightness = self.state["clock_rgb"]["brightness"]
         for i in range(0, 7):
             r = 0xFF if i == weekday else 0x66
             g = 0x00 if i == weekday else 0x00

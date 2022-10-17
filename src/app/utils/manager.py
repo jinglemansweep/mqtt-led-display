@@ -1,4 +1,5 @@
 import uasyncio as asyncio
+from app.utils.hass import HASS
 from app.lib.mqttas import MQTTClient, config
 from app.utils.time import ntp_update
 from app.secrets import (
@@ -11,19 +12,18 @@ from app.secrets import (
     MQTT_USERNAME,
     MQTT_PASSWORD,
 )
-from app.constants import HASS_DISCOVERY_PREFIX
 
 
 class Manager:
     plugins = set()
 
-    def __init__(self, name, display, hass_topic_prefix=HASS_DISCOVERY_PREFIX):
+    def __init__(self, name, display):
         self.name = name
         self.display = display
         self.client = self._build_client()
+        self.hass = self._build_hass_manager()
         self.plugins = set()
-        self.state = dict(status_wifi=False, status_mqtt=False)
-        self.hass_topic_prefix = hass_topic_prefix
+        self.state = dict(scene=0, status_wifi=False, status_mqtt=False)
 
     def run(self):
         asyncio.run(self.loop())
@@ -40,7 +40,7 @@ class Manager:
         asyncio.create_task(ntp_update())
         while True:
             for plugin in self.plugins:
-                asyncio.create_task(plugin.loop())
+                asyncio.create_task(plugin.tick())
             self.display.render()
             await asyncio.sleep(0.05)
 
@@ -90,3 +90,6 @@ class Manager:
 
     async def _on_connect(self, _):
         self.state["status_mqtt"] = True
+
+    def _build_hass_manager(self):
+        return HASS(self.name, self.client)
