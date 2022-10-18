@@ -13,6 +13,7 @@ class DebugPlugin(BasePlugin):
 
     async def loop(self):
         await self.render_debug()
+        self.manager.display.render()
 
     async def render_debug(self):
         x, y = self.DEBUG_POSITION

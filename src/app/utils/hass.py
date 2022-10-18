@@ -50,10 +50,13 @@ class Entity:
         if new_state is None:
             new_state = dict()
         self.state.update(new_state)
-        print(f"hass.entity.update: name={self.name} config={self.state}")
-        await self.client.publish(
-            self.topic_state, json.dumps(self.state), retain=True, qos=1
+        print(f"hass.entity.update: name={self.name} state={self.state}")
+        payload = (
+            self.state.get("state")
+            if self.device_class == "switch"
+            else json.dumps(self.state)
         )
+        await self.client.publish(self.topic_state, payload, retain=True, qos=1)
 
     def _build_entity_topic_prefix(self):
         return f"{self.hass_topic_prefix}/{self.device_class}/{self.name}"
