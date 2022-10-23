@@ -1,7 +1,4 @@
-import uasyncio as asyncio
-import ntptime
-import utime
-
+from app.utils.system import ntptime, uasyncio, utime
 from app.settings import UTC_OFFSET
 
 
@@ -17,8 +14,8 @@ async def ntp_update():
         repeat_delay = 10
     finally:
         print(f"ntp: update in {repeat_delay}s")
-        await asyncio.sleep(repeat_delay)
-        asyncio.create_task(ntp_update())
+        await uasyncio.sleep(repeat_delay)
+        uasyncio.create_task(ntp_update())
     return success
 
 

@@ -1,8 +1,7 @@
 import json
-import uasyncio as asyncio
-import utime
 from app.resources.pixelfont import PixelFont
 from app.plugins._base import BasePlugin
+from app.utils.system import uasyncio, utime
 from app.utils.time import get_time
 
 

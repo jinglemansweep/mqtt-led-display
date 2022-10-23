@@ -1,10 +1,9 @@
 import json
-import uasyncio as asyncio
-import utime
 from app.constants import UNIQUE_ID
 from app.resources.pixelfont import PixelFont
 from app.plugins._base import BasePlugin
 from app.utils.helpers import rgb_dict_to_tuple, scale_brightness
+from app.utils.system import uasyncio, utime
 from app.utils.time import get_time
 
 fmt_string = "{:02d}"
@@ -58,11 +57,11 @@ class ClockPlugin(BasePlugin):
         # MESSAGE: CLOCK_RGB
         entity_clock_rgb = self.entities.get("clock_rgb")
         if topic == entity_clock_rgb.topic_command:
-            asyncio.create_task(entity_clock_rgb.update(json.loads(msg)))
+            uasyncio.create_task(entity_clock_rgb.update(json.loads(msg)))
         # MESSAGE: CLOCK_SHOW_SECONDS
         entity_clock_show_seconds = self.entities.get("clock_show_seconds")
         if topic == entity_clock_show_seconds.topic_command:
-            asyncio.create_task(
+            uasyncio.create_task(
                 entity_clock_show_seconds.update(
                     dict(state="ON" if msg == "ON" else "OFF")
                 )
@@ -70,7 +69,7 @@ class ClockPlugin(BasePlugin):
         # MESSAGE: CLOCK_SHOW_WEEKDAYS
         entity_clock_show_weekdays = self.entities.get("clock_show_weekdays")
         if topic == entity_clock_show_weekdays.topic_command:
-            asyncio.create_task(
+            uasyncio.create_task(
                 entity_clock_show_weekdays.update(
                     dict(state="ON" if msg == "ON" else "OFF")
                 )

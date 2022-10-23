@@ -1,6 +1,4 @@
 import time
-from neopixel import NeoPixel
-from machine import Pin
 
 from app.settings import (
     DISPLAY_GPIO_PIN,
@@ -12,12 +10,38 @@ from app.settings import (
     DISPLAY_DEBUG,
 )
 
-if not hasattr(time, "ticks_ms"):
-    time.ticks_ms = lambda: int(time.time() * 1000)
+
+def create_display(
+    gpio_pin=DISPLAY_GPIO_PIN,
+    rows=DISPLAY_ROWS,
+    columns=DISPLAY_COLUMNS,
+    fps=DISPLAY_FPS,
+    rotation=DISPLAY_ROTATION,
+    brightness=DISPLAY_BRIGHTNESS,
+    debug=DISPLAY_DEBUG,
+):
+    try:
+        import neopixel
+
+        driver = NeoPixel(
+            gpio_pin=gpio_pin, pixel_count=(rows * columns), brightness=brightness
+        )
+    except:
+        driver = DebugDriver(rows=rows, columns=columns)
+    return LedMatrix(driver, rows, columns, fps, rotation, debug)
 
 
-class HAL:
+class DebugDriver:
+    def __init__(self, rows, columns):
+        self.rows = rows
+        self.columns = columns
+        print(f"DebugDriver rows={rows} columns={columns}")
+
+
+class NeoPixel:
     def __init__(self, gpio_pin, pixel_count, brightness):
+        from machine import Pin
+
         self.gpio_pin = gpio_pin
         self.pixel_count = pixel_count
         self.brightness = brightness
@@ -53,20 +77,18 @@ class HAL:
 class LedMatrix:
     def __init__(
         self,
-        gpio_pin,
+        driver,
         rows,
         columns,
         fps,
         rotation,
-        brightness,
         debug,
     ):
-        self.driver = HAL(gpio_pin, pixel_count=(rows * columns), brightness=brightness)
+        self.driver = driver
         self.rows = rows
         self.columns = columns
         self.fps = fps
         self.rotation = rotation
-        self.brightness = brightness
         self.debug = debug
         self.num_pixels = self.rows * self.columns
         # For avoiding multiplications and divisions
@@ -385,26 +407,3 @@ class LedMatrix:
                 self.render()
         # There are still pixels to dissolve
         return True
-
-
-from app.settings import (
-    DISPLAY_GPIO_PIN,
-    DISPLAY_ROWS,
-    DISPLAY_COLUMNS,
-    DISPLAY_FPS,
-    DISPLAY_ROTATION,
-    DISPLAY_BRIGHTNESS,
-    DISPLAY_DEBUG,
-)
-
-
-def create_display(
-    gpio_pin=DISPLAY_GPIO_PIN,
-    rows=DISPLAY_ROWS,
-    columns=DISPLAY_COLUMNS,
-    fps=DISPLAY_FPS,
-    rotation=DISPLAY_ROTATION,
-    brightness=DISPLAY_BRIGHTNESS,
-    debug=DISPLAY_DEBUG,
-):
-    return LedMatrix(gpio_pin, rows, columns, fps, rotation, brightness, debug)

@@ -1,11 +1,10 @@
-import utime
+from app.utils.system import utime, uasyncio
 
 utime.sleep(2)
 
 import gc
 import json
 import sys
-import uasyncio as asyncio
 
 from app.constants import DEVICE_ID, UNIQUE_ID
 from app.lib.ledmatrix import create_display
@@ -38,4 +37,4 @@ try:
     manager.run()
 finally:  # Prevent LmacRxBlk:1 errors.
     manager.client.close()
-    asyncio.new_event_loop()
+    uasyncio.new_event_loop()

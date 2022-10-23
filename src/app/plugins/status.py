@@ -1,8 +1,7 @@
 import json
-import uasyncio as asyncio
-import utime
 from app.resources.pixelfont import PixelFont
 from app.plugins._base import BasePlugin
+from app.utils.system import uasyncio, utime
 
 
 class StatusPlugin(BasePlugin):
@@ -29,5 +28,7 @@ class StatusPlugin(BasePlugin):
         color_off = (0, 0, 0)
         color_wifi = self.STATUS_WIFI_COLOR if not wifi else color_off
         color_mqtt = self.STATUS_MQTT_COLOR if not mqtt else color_off
-        self.manager.display.put_pixel(*self.STATUS_WIFI_POSITION, *color_wifi)
-        self.manager.display.put_pixel(*self.STATUS_MQTT_POSITION, *color_mqtt)
+        (x_wifi, y_wifi) = self.STATUS_WIFI_POSITION
+        (x_mqtt, y_mqtt) = self.STATUS_MQTT_POSITION
+        self.manager.display.put_pixel(x_wifi, y_wifi, *color_wifi)
+        self.manager.display.put_pixel(x_mqtt, y_mqtt, *color_mqtt)

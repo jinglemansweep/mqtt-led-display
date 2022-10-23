@@ -1,6 +1,7 @@
-import uasyncio as asyncio
 from app.utils.hass import HASS
+from app.utils.system import uasyncio
 from app.lib.mqttas import MQTTClient, config
+
 from app.utils.time import ntp_update
 from app.secrets import (
     WIFI_KEY,
@@ -26,7 +27,7 @@ class Manager:
         self.state = dict(scene=0, status_wifi=False, status_mqtt=False)
 
     def run(self):
-        asyncio.run(self.loop())
+        uasyncio.run(self.loop())
 
     async def loop(self):
         try:
@@ -36,13 +37,13 @@ class Manager:
             return
         self.display.clear()
         for plugin in self.plugins:
-            asyncio.create_task(plugin._initialize())
-        asyncio.create_task(ntp_update())
+            uasyncio.create_task(plugin._initialize())
+        uasyncio.create_task(ntp_update())
         while True:
             for plugin in self.plugins:
-                asyncio.create_task(plugin.tick())
+                uasyncio.create_task(plugin.tick())
             self.display.render()
-            await asyncio.sleep(0.05)
+            await uasyncio.sleep(0.05)
 
     def add_plugin(self, plugin_cls):
         plugin = plugin_cls(self)
@@ -86,7 +87,7 @@ class Manager:
             self.state["status_mqtt"] = False
             print("Status: Not Connected")
         self.state["status_wifi"] = status
-        await asyncio.sleep(1)
+        await uasyncio.sleep(1)
 
     async def _on_connect(self, _):
         self.state["status_mqtt"] = True

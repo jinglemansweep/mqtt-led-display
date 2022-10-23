@@ -1,5 +1,5 @@
-import ubinascii
-from machine import unique_id
+from app.utils.system import ubinascii
+from app.utils.system import unique_id
 
 
 def _get_device_id():
