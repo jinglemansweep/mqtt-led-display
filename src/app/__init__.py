@@ -10,7 +10,6 @@ import uasyncio as asyncio
 from app.constants import DEVICE_ID, UNIQUE_ID
 from app.lib.ledmatrix import create_display
 from app.plugins.clock import ClockPlugin
-from app.plugins.debug import DebugPlugin
 from app.plugins.status import StatusPlugin
 from app.resources.icons import SNAKE, POKEMON
 from app.utils.helpers import led_log
@@ -32,7 +31,6 @@ display.render()
 manager = Manager(UNIQUE_ID, display)
 manager.add_plugin(StatusPlugin)
 manager.add_plugin(ClockPlugin)
-manager.add_plugin(DebugPlugin)
 
 try:
     manager.run()
